@@ -3,7 +3,7 @@ import pandas as pd
 
 def result_analysis():
     tasks = ['fb', 'osmc', 'books']
-    indexs = ['BTree', 'DynamicPGM', 'LIPP']
+    indexs = ['BTree', 'DynamicPGM', 'LIPP', 'HybridPGMLIPP']
     # Create dictionaries to store throughput data for each index
     lookuponly_throughput = {}
     insertlookup_throughput = {}
@@ -63,14 +63,14 @@ def result_analysis():
     # each subplot should contain 3 bars, each bar corresponds to a dataset (fb, osmc, books) if the throughput is not empty
     
     import matplotlib.pyplot as plt
-    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+    fig, axs = plt.subplots(2, 2, figsize=(15, 12))
     # Flatten axs for easier indexing
     axs = axs.flatten()
     
     # Define common plot parameters
-    bar_width = 0.2
+    bar_width = 0.15  # Reduced bar width to accommodate more indexes
     index = range(len(indexs))
-    colors = ['blue', 'green', 'red', 'orange']
+    colors = ['blue', 'green', 'red', 'orange', 'purple']  # Added purple for HybridPGMLIPP
     
     # 1. Plot lookup-only throughput
     ax = axs[0]
@@ -83,7 +83,7 @@ def result_analysis():
     ax.set_title('Lookup-only Throughput')
     ax.set_ylabel('Throughput (Mops/s)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs)
+    ax.set_xticklabels(indexs, rotation=45, ha='right')
     ax.legend()
     
     # 2. Plot insert-lookup throughput (separated)
@@ -112,7 +112,7 @@ def result_analysis():
     ax.set_title('Insert-Lookup Throughput (50% insert ratio)')
     ax.set_ylabel('Throughput (Mops/s)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs)
+    ax.set_xticklabels(indexs, rotation=45, ha='right')
     ax.legend()
     
     # 3. Plot mixed workload with 10% inserts
@@ -126,7 +126,7 @@ def result_analysis():
     ax.set_title('Mixed Workload (10% insert ratio)')
     ax.set_ylabel('Throughput (Mops/s)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs)
+    ax.set_xticklabels(indexs, rotation=45, ha='right')
     ax.legend()
     
     # 4. Plot mixed workload with 90% inserts
@@ -140,7 +140,7 @@ def result_analysis():
     ax.set_title('Mixed Workload (90% insert ratio)')
     ax.set_ylabel('Throughput (Mops/s)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs)
+    ax.set_xticklabels(indexs, rotation=45, ha='right')
     ax.legend()
     
     # Add overall title and adjust layout
@@ -148,7 +148,7 @@ def result_analysis():
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     
     # Save the figure
-    plt.savefig('benchmark_results.png', dpi=300)
+    plt.savefig('benchmark_results.png', dpi=300, bbox_inches='tight')
     plt.show()
     
     # Save data to CSV files for further analysis
