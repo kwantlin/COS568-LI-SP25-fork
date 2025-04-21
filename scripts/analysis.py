@@ -10,11 +10,22 @@ def result_analysis():
     insertlookup_mix1_throughput = {}
     insertlookup_mix2_throughput = {}
     
+    # Create dictionaries to store size data for each index
+    lookuponly_size = {}
+    insertlookup_size = {}
+    insertlookup_mix1_size = {}
+    insertlookup_mix2_size = {}
+    
     for index in indexs:
         lookuponly_throughput[index] = {}
         insertlookup_throughput[index] = {"lookup": {}, "insert": {}}
         insertlookup_mix1_throughput[index] = {}
         insertlookup_mix2_throughput[index] = {}
+        
+        lookuponly_size[index] = {}
+        insertlookup_size[index] = {}
+        insertlookup_mix1_size[index] = {}
+        insertlookup_mix2_size[index] = {}
     
     for task in tasks:
         full_task_name = f"{task}_100M_public_uint64"
@@ -29,6 +40,8 @@ def result_analysis():
                 lookup_only_result = lookup_only_results[lookup_only_results['index_name'] == index]
                 # compute average throughput across lookup_only_result['throughput1'], lookup_only_result['throughput2'], lookup_only_result['throughput3'], then select the one with the highest throughput
                 lookuponly_throughput[index][task] = lookup_only_result[['lookup_throughput_mops1', 'lookup_throughput_mops2', 'lookup_throughput_mops3']].mean(axis=1).max()
+                # get the index size
+                lookuponly_size[index][task] = lookup_only_result['index_size_bytes'].iloc[0]
             except:
                 pass
             
@@ -38,6 +51,8 @@ def result_analysis():
                 # compute average throughput across insert_lookup_result['throughput1'], insert_lookup_result['throughput2'], insert_lookup_result['throughput3'], then select the one with the highest throughput
                 insertlookup_throughput[index]['lookup'][task] = insert_lookup_result[['lookup_throughput_mops1', 'lookup_throughput_mops2', 'lookup_throughput_mops3']].mean(axis=1).max()
                 insertlookup_throughput[index]['insert'][task] = insert_lookup_result[['insert_throughput_mops1', 'insert_throughput_mops2', 'insert_throughput_mops3']].mean(axis=1).max()
+                # get the index size
+                insertlookup_size[index][task] = insert_lookup_result['index_size_bytes'].iloc[0]
             except:
                 pass
             
@@ -47,6 +62,8 @@ def result_analysis():
                 insert_lookup_mix_1_result = insert_lookup_mix_1_results[insert_lookup_mix_1_results['index_name'] == index]
                 # compute average throughput across insert_lookup_mix_1_result['throughput1'], insert_lookup_mix_1_result['throughput2'], insert_lookup_mix_1_result['throughput3'], then select the one with the highest throughput
                 insertlookup_mix1_throughput[index][task] = insert_lookup_mix_1_result[['mixed_throughput_mops1', 'mixed_throughput_mops2', 'mixed_throughput_mops3']].mean(axis=1).max()
+                # get the index size
+                insertlookup_mix1_size[index][task] = insert_lookup_mix_1_result['index_size_bytes'].iloc[0]
             except:
                 pass
             
@@ -56,21 +73,19 @@ def result_analysis():
                 insert_lookup_mix_2_result = insert_lookup_mix_2_results[insert_lookup_mix_2_results['index_name'] == index]
                 # compute average throughput across insert_lookup_mix_2_result['throughput1'], insert_lookup_mix_2_result['throughput2'], insert_lookup_mix_2_result['throughput3'], then select the one with the highest throughput
                 insertlookup_mix2_throughput[index][task] = insert_lookup_mix_2_result[['mixed_throughput_mops1', 'mixed_throughput_mops2', 'mixed_throughput_mops3']].mean(axis=1).max()
+                # get the index size
+                insertlookup_mix2_size[index][task] = insert_lookup_mix_2_result['index_size_bytes'].iloc[0]
             except:
                 pass
-    # plot the figure of throughput, x axis is the index, y axis is the throughput
-    # the figure should contain 4 subplots, each subplot corresponds to a workload, including lookup_only, insert_lookup, insert_lookup_mix1, insert_lookup_mix2
-    # each subplot should contain 3 bars, each bar corresponds to a dataset (fb, osmc, books) if the throughput is not empty
     
+    # Plot throughput results
     import matplotlib.pyplot as plt
     fig, axs = plt.subplots(2, 2, figsize=(15, 12))
-    # Flatten axs for easier indexing
     axs = axs.flatten()
     
-    # Define common plot parameters
-    bar_width = 0.15  # Reduced bar width to accommodate more indexes
+    bar_width = 0.15
     index = range(len(indexs))
-    colors = ['blue', 'green', 'red', 'orange', 'purple']  # Added purple for HybridPGMLIPP
+    colors = ['blue', 'green', 'red', 'orange', 'purple']
     
     # 1. Plot lookup-only throughput
     ax = axs[0]
@@ -88,7 +103,6 @@ def result_analysis():
     
     # 2. Plot insert-lookup throughput (separated)
     ax = axs[1]
-    # First plot lookups
     offset = 0
     for i, task in enumerate(tasks):
         task_data = []
@@ -99,7 +113,6 @@ def result_analysis():
                color=colors[i])
         offset += bar_width/2
     
-    # Then plot inserts
     offset = bar_width*2
     for i, task in enumerate(tasks):
         task_data = []
@@ -143,12 +156,74 @@ def result_analysis():
     ax.set_xticklabels(indexs, rotation=45, ha='right')
     ax.legend()
     
-    # Add overall title and adjust layout
-    fig.suptitle('Benchmark Results Across Different Workloads', fontsize=16)
+    fig.suptitle('Benchmark Results - Throughput', fontsize=16)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.savefig('benchmark_results_throughput.png', dpi=300, bbox_inches='tight')
+    plt.show()
     
-    # Save the figure
-    plt.savefig('benchmark_results.png', dpi=300, bbox_inches='tight')
+    # Plot size results
+    fig, axs = plt.subplots(2, 2, figsize=(15, 12))
+    axs = axs.flatten()
+    
+    # 1. Plot lookup-only size
+    ax = axs[0]
+    for i, task in enumerate(tasks):
+        task_data = []
+        for idx in indexs:
+            task_data.append(lookuponly_size[idx].get(task, 0))
+        ax.bar([x + i*bar_width for x in index], task_data, bar_width, label=task, color=colors[i])
+        
+    ax.set_title('Lookup-only Index Size')
+    ax.set_ylabel('Size (bytes)')
+    ax.set_xticks([x + bar_width*1.5 for x in index])
+    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.legend()
+    
+    # 2. Plot insert-lookup size
+    ax = axs[1]
+    for i, task in enumerate(tasks):
+        task_data = []
+        for idx in indexs:
+            task_data.append(insertlookup_size[idx].get(task, 0))
+        ax.bar([x + i*bar_width for x in index], task_data, bar_width, label=task, color=colors[i])
+        
+    ax.set_title('Insert-Lookup Index Size (50% insert ratio)')
+    ax.set_ylabel('Size (bytes)')
+    ax.set_xticks([x + bar_width*1.5 for x in index])
+    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.legend()
+    
+    # 3. Plot mixed workload 1 size
+    ax = axs[2]
+    for i, task in enumerate(tasks):
+        task_data = []
+        for idx in indexs:
+            task_data.append(insertlookup_mix1_size[idx].get(task, 0))
+        ax.bar([x + i*bar_width for x in index], task_data, bar_width, label=task, color=colors[i])
+        
+    ax.set_title('Mixed Workload Index Size (10% insert ratio)')
+    ax.set_ylabel('Size (bytes)')
+    ax.set_xticks([x + bar_width*1.5 for x in index])
+    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.legend()
+    
+    # 4. Plot mixed workload 2 size
+    ax = axs[3]
+    for i, task in enumerate(tasks):
+        task_data = []
+        for idx in indexs:
+            task_data.append(insertlookup_mix2_size[idx].get(task, 0))
+        ax.bar([x + i*bar_width for x in index], task_data, bar_width, label=task, color=colors[i])
+        
+    ax.set_title('Mixed Workload Index Size (90% insert ratio)')
+    ax.set_ylabel('Size (bytes)')
+    ax.set_xticks([x + bar_width*1.5 for x in index])
+    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.legend()
+    
+    fig.suptitle('Benchmark Results - Index Size', fontsize=16)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.savefig('benchmark_results_size.png', dpi=300, bbox_inches='tight')
     plt.show()
     
     # Save data to CSV files for further analysis
@@ -156,14 +231,19 @@ def result_analysis():
     os.makedirs('analysis_results', exist_ok=True)
     
     pd.DataFrame(lookuponly_throughput).to_csv('analysis_results/lookuponly_throughput.csv')
+    pd.DataFrame(lookuponly_size).to_csv('analysis_results/lookuponly_size.csv')
     
     lookup_df = pd.DataFrame({idx: data['lookup'] for idx, data in insertlookup_throughput.items()})
     insert_df = pd.DataFrame({idx: data['insert'] for idx, data in insertlookup_throughput.items()})
     lookup_df.to_csv('analysis_results/insertlookup_lookup_throughput.csv')
     insert_df.to_csv('analysis_results/insertlookup_insert_throughput.csv')
+    pd.DataFrame(insertlookup_size).to_csv('analysis_results/insertlookup_size.csv')
     
     pd.DataFrame(insertlookup_mix1_throughput).to_csv('analysis_results/insertlookup_mix1_throughput.csv')
+    pd.DataFrame(insertlookup_mix1_size).to_csv('analysis_results/insertlookup_mix1_size.csv')
+    
     pd.DataFrame(insertlookup_mix2_throughput).to_csv('analysis_results/insertlookup_mix2_throughput.csv')
+    pd.DataFrame(insertlookup_mix2_size).to_csv('analysis_results/insertlookup_mix2_size.csv')
 
 if __name__ == "__main__":
     result_analysis()
