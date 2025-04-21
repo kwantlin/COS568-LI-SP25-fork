@@ -113,26 +113,27 @@ class HybridPGMLIPP : public Base<KeyType> {
   }
 
   void ExtractDPGMData(std::vector<KeyValue<KeyType>>& output) {
-    // Use RangeQuery to get all keys in DPGM
-    KeyType min_key = std::numeric_limits<KeyType>::min();
-    KeyType max_key = std::numeric_limits<KeyType>::max();
-    
-    // Get all keys in DPGM using RangeQuery
-    uint64_t count = dpgm_.RangeQuery(min_key, max_key, 0);
-    
-    // If we have any keys, we need to find them
-    if (count > 0) {
-      // Use binary search to find all keys
-      KeyType current = min_key;
-      while (current <= max_key) {
-        size_t value = dpgm_.EqualityLookup(current, 0);
+    try {
+      // Clear the output vector
+      output.clear();
+      
+      // Get the internal data structure
+      const auto& pgm = dpgm_.GetInternalData();
+      
+      // Get the first key
+      auto it = pgm.lower_bound(std::numeric_limits<KeyType>::min());
+      
+      // Iterate through all items
+      while (it != pgm.end()) {
+        // Use EqualityLookup to check if the item exists and get its value
+        size_t value = dpgm_.EqualityLookup(it->key(), 0);
         if (value != util::NOT_FOUND) {
-          output.emplace_back(KeyValue<KeyType>{current, value});
+          output.push_back(KeyValue<KeyType>{it->key(), value});
         }
-        // Increment current key
-        if (current == max_key) break;
-        current++;
+        ++it;
       }
+    } catch (const std::exception& e) {
+      std::cerr << "Error in ExtractDPGMData: " << e.what() << std::endl;
     }
   }
 

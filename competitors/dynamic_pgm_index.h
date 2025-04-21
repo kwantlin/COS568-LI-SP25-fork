@@ -70,6 +70,34 @@ class DynamicPGM : public Competitor<KeyType, SearchClass> {
     return vec;
   }
 
+  // Get direct access to the internal data structure
+  const auto& GetInternalData() const { return pgm_; }
+
+  // Check if an item is deleted
+  bool IsItemDeleted(const auto& it) const {
+    return it->deleted();
+  }
+
+  // Get all non-deleted items
+  std::vector<KeyValue<KeyType>> GetAllItems() const {
+    std::vector<KeyValue<KeyType>> result;
+    const auto& pgm = GetInternalData();
+    
+    // Get the first key
+    auto it = pgm.lower_bound(std::numeric_limits<KeyType>::min());
+    if (it == pgm.end()) return result;
+    
+    // Iterate through all keys
+    while (it != pgm.end()) {
+      size_t value = EqualityLookup(it->key(), 0);
+      if (value != util::NOT_FOUND) {
+        result.emplace_back(it->key(), value);
+      }
+      ++it;
+    }
+    return result;
+  }
+
  private:
   DynamicPGMIndex<KeyType, uint64_t, SearchClass, PGMIndex<KeyType, SearchClass, pgm_error, 16>> pgm_;
 };
