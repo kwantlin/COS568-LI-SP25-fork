@@ -7,7 +7,8 @@
 mkdir -p build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j 8 
+make VERBOSE=1
+
 
 function generate_uint64_100M() {
     echo "Generating operations for $1"
