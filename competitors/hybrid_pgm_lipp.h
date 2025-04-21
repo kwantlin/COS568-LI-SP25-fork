@@ -10,6 +10,7 @@
 #include <atomic>
 #include <queue>
 #include <limits>
+#include <chrono>
 
 #include "../util.h"
 #include "base.h"
@@ -51,16 +52,17 @@ class HybridPGMLIPP : public Base<KeyType> {
   }
 
   void Insert(const KeyValue<KeyType>& data, uint32_t thread_id) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
-    // Insert into DPGM
+    // First insert into DPGM without lock
     dpgm_.Insert(data, thread_id);
     
-    // Check if we need to migrate data from DPGM to LIPP
-    if (dpgm_.size() > migration_threshold_ * (dpgm_.size() + lipp_.size())) {
-      // Start asynchronous migration if not already in progress
-      if (!migration_in_progress_.load()) {
-        StartAsyncMigration();
+    // Check migration threshold less frequently
+    static size_t insert_count = 0;
+    if (++insert_count % 110000 == 0) {  // Check every 110000 inserts
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (dpgm_.size() > migration_threshold_ * (dpgm_.size() + lipp_.size())) {
+        if (!migration_in_progress_.load()) {
+          StartAsyncMigration();
+        }
       }
     }
   }
@@ -83,7 +85,12 @@ class HybridPGMLIPP : public Base<KeyType> {
 
  private:
   void StartAsyncMigration() {
-    migration_in_progress_.store(true);
+    // Don't start a new migration if one is already in progress
+    bool expected = false;
+    if (!migration_in_progress_.compare_exchange_strong(expected, true)) {
+      return;
+    }
+    
     std::thread migration_thread([this]() {
       MigrateDPGMToLIPP();
       migration_in_progress_.store(false);
@@ -95,6 +102,11 @@ class HybridPGMLIPP : public Base<KeyType> {
     // Extract all data from DPGM
     std::vector<KeyValue<KeyType>> dpgm_data;
     ExtractDPGMData(dpgm_data);
+    
+    if (dpgm_data.empty()) {
+      migration_in_progress_.store(false);
+      return;
+    }
     
     // Sort the data for efficient bulk loading
     std::sort(dpgm_data.begin(), dpgm_data.end(), 
@@ -125,11 +137,8 @@ class HybridPGMLIPP : public Base<KeyType> {
       
       // Iterate through all items
       while (it != pgm.end()) {
-        // Use EqualityLookup to check if the item exists and get its value
-        size_t value = dpgm_.EqualityLookup(it->key(), 0);
-        if (value != util::NOT_FOUND) {
-          output.push_back(KeyValue<KeyType>{it->key(), value});
-        }
+        // Use the iterator's value directly
+        output.push_back(KeyValue<KeyType>{it->key(), it->value()});
         ++it;
       }
     } catch (const std::exception& e) {
