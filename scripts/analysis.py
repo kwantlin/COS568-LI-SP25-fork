@@ -29,10 +29,10 @@ def result_analysis():
     
     for task in tasks:
         full_task_name = f"{task}_100M_public_uint64"
-        lookup_only_results = pd.read_csv(f"results-set/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.000000i_results_table.csv")
-        insert_lookup_results = pd.read_csv(f"results-set/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.500000i_0m_results_table.csv")
-        insert_lookup_mix_1_results = pd.read_csv(f"results-set/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.100000i_0m_mix_results_table.csv")
-        insert_lookup_mix_2_results = pd.read_csv(f"results-set/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.900000i_0m_mix_results_table.csv")
+        lookup_only_results = pd.read_csv(f"results/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.000000i_results_table.csv")
+        insert_lookup_results = pd.read_csv(f"results/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.500000i_0m_results_table.csv")
+        insert_lookup_mix_1_results = pd.read_csv(f"results/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.100000i_0m_mix_results_table.csv")
+        insert_lookup_mix_2_results = pd.read_csv(f"results/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.900000i_0m_mix_results_table.csv")
         
         # Store labels for each index
         lookup_labels = {}
@@ -197,7 +197,7 @@ def result_analysis():
     ax.set_title('Lookup-only Index Size')
     ax.set_ylabel('Size (bytes)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.set_xticklabels([lookup_labels.get(idx, idx) for idx in indexs], rotation=45, ha='right')
     ax.legend()
     
     # 2. Plot insert-lookup size
@@ -211,7 +211,7 @@ def result_analysis():
     ax.set_title('Insert-Lookup Index Size (50% insert ratio)')
     ax.set_ylabel('Size (bytes)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.set_xticklabels([insert_labels.get(idx, idx) for idx in indexs], rotation=45, ha='right')
     ax.legend()
     
     # 3. Plot mixed workload 1 size
@@ -225,7 +225,7 @@ def result_analysis():
     ax.set_title('Mixed Workload Index Size (10% insert ratio)')
     ax.set_ylabel('Size (bytes)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.set_xticklabels([mix1_labels.get(idx, idx) for idx in indexs], rotation=45, ha='right')
     ax.legend()
     
     # 4. Plot mixed workload 2 size
@@ -239,7 +239,7 @@ def result_analysis():
     ax.set_title('Mixed Workload Index Size (90% insert ratio)')
     ax.set_ylabel('Size (bytes)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.set_xticklabels([mix2_labels.get(idx, idx) for idx in indexs], rotation=45, ha='right')
     ax.legend()
     
     fig.suptitle('Benchmark Results - Index Size', fontsize=16)

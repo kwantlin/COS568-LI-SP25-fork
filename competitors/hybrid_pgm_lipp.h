@@ -253,6 +253,15 @@ class HybridPGMLIPP : public Base<KeyType> {
           lipp_.Build(batch, 1);
           lipp_min_key_ = std::min(lipp_min_key_, batch_min);
           lipp_max_key_ = std::max(lipp_max_key_, batch_max);
+          
+          // Clear migrated data from DPGM
+          auto& pgm = dpgm_.GetInternalData();
+          for (const auto& kv : batch) {
+            auto it = pgm.find(kv.key);
+            if (it != pgm.end()) {
+              pgm.erase(it);
+            }
+          }
         }
       }));
     }
