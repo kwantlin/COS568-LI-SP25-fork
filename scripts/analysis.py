@@ -29,52 +29,73 @@ def result_analysis():
     
     for task in tasks:
         full_task_name = f"{task}_100M_public_uint64"
-        lookup_only_results = pd.read_csv(f"results/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.000000i_results_table.csv")
-        insert_lookup_results = pd.read_csv(f"results/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.500000i_0m_results_table.csv")
-        insert_lookup_mix_1_results = pd.read_csv(f"results/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.100000i_0m_mix_results_table.csv")
-        insert_lookup_mix_2_results = pd.read_csv(f"results/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.900000i_0m_mix_results_table.csv")
+        lookup_only_results = pd.read_csv(f"results-set/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.000000i_results_table.csv")
+        insert_lookup_results = pd.read_csv(f"results-set/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.500000i_0m_results_table.csv")
+        insert_lookup_mix_1_results = pd.read_csv(f"results-set/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.100000i_0m_mix_results_table.csv")
+        insert_lookup_mix_2_results = pd.read_csv(f"results-set/{full_task_name}_ops_2M_0.000000rq_0.500000nl_0.900000i_0m_mix_results_table.csv")
+        
+        # Store labels for each index
+        lookup_labels = {}
+        insert_labels = {}
+        mix1_labels = {}
+        mix2_labels = {}
         
         for index in indexs:
-            # find the row where lookup_only_result['index_name'] == index
             try:
+                # Lookup only
                 lookup_only_result = lookup_only_results[lookup_only_results['index_name'] == index]
-                # compute average throughput across lookup_only_result['throughput1'], lookup_only_result['throughput2'], lookup_only_result['throughput3'], then select the one with the highest throughput
-                lookuponly_throughput[index][task] = lookup_only_result[['lookup_throughput_mops1', 'lookup_throughput_mops2', 'lookup_throughput_mops3']].mean(axis=1).max()
-                # get the index size
-                lookuponly_size[index][task] = lookup_only_result['index_size_bytes'].iloc[0]
+                if not lookup_only_result.empty:
+                    # Calculate mean throughput for each row
+                    lookup_only_result['mean_throughput'] = lookup_only_result[['lookup_throughput_mops1', 'lookup_throughput_mops2', 'lookup_throughput_mops3']].mean(axis=1)
+                    # Get row with max throughput
+                    max_row = lookup_only_result.loc[lookup_only_result['mean_throughput'].idxmax()]
+                    lookuponly_throughput[index][task] = max_row['mean_throughput']
+                    lookuponly_size[index][task] = max_row['index_size_bytes']
+                    lookup_labels[index] = f"{index}\n({max_row['search_method']}, {max_row['value']})"
+            
             except:
                 pass
             
-            # find the row where insert_lookup_result['index_name'] == index
             try:
+                # Insert lookup
                 insert_lookup_result = insert_lookup_results[insert_lookup_results['index_name'] == index]
-                # compute average throughput across insert_lookup_result['throughput1'], insert_lookup_result['throughput2'], insert_lookup_result['throughput3'], then select the one with the highest throughput
-                insertlookup_throughput[index]['lookup'][task] = insert_lookup_result[['lookup_throughput_mops1', 'lookup_throughput_mops2', 'lookup_throughput_mops3']].mean(axis=1).max()
-                insertlookup_throughput[index]['insert'][task] = insert_lookup_result[['insert_throughput_mops1', 'insert_throughput_mops2', 'insert_throughput_mops3']].mean(axis=1).max()
-                # get the index size
-                insertlookup_size[index][task] = insert_lookup_result['index_size_bytes'].iloc[0]
+                if not insert_lookup_result.empty:
+                    # Calculate mean throughput for each row
+                    insert_lookup_result['mean_lookup_throughput'] = insert_lookup_result[['lookup_throughput_mops1', 'lookup_throughput_mops2', 'lookup_throughput_mops3']].mean(axis=1)
+                    insert_lookup_result['mean_insert_throughput'] = insert_lookup_result[['insert_throughput_mops1', 'insert_throughput_mops2', 'insert_throughput_mops3']].mean(axis=1)
+                    # Get row with max lookup throughput
+                    max_row = insert_lookup_result.loc[insert_lookup_result['mean_lookup_throughput'].idxmax()]
+                    insertlookup_throughput[index]['lookup'][task] = max_row['mean_lookup_throughput']
+                    insertlookup_throughput[index]['insert'][task] = max_row['mean_insert_throughput']
+                    insertlookup_size[index][task] = max_row['index_size_bytes']
+                    insert_labels[index] = f"{index}\n({max_row['search_method']}, {max_row['value']})"
+            
             except:
                 pass
             
-                
-            # find the row where insert_lookup_mix_1_result['index_name'] == index
             try:
+                # Mixed workload 1
                 insert_lookup_mix_1_result = insert_lookup_mix_1_results[insert_lookup_mix_1_results['index_name'] == index]
-                # compute average throughput across insert_lookup_mix_1_result['throughput1'], insert_lookup_mix_1_result['throughput2'], insert_lookup_mix_1_result['throughput3'], then select the one with the highest throughput
-                insertlookup_mix1_throughput[index][task] = insert_lookup_mix_1_result[['mixed_throughput_mops1', 'mixed_throughput_mops2', 'mixed_throughput_mops3']].mean(axis=1).max()
-                # get the index size
-                insertlookup_mix1_size[index][task] = insert_lookup_mix_1_result['index_size_bytes'].iloc[0]
+                if not insert_lookup_mix_1_result.empty:
+                    insert_lookup_mix_1_result['mean_throughput'] = insert_lookup_mix_1_result[['mixed_throughput_mops1', 'mixed_throughput_mops2', 'mixed_throughput_mops3']].mean(axis=1)
+                    max_row = insert_lookup_mix_1_result.loc[insert_lookup_mix_1_result['mean_throughput'].idxmax()]
+                    insertlookup_mix1_throughput[index][task] = max_row['mean_throughput']
+                    insertlookup_mix1_size[index][task] = max_row['index_size_bytes']
+                    mix1_labels[index] = f"{index}\n({max_row['search_method']}, {max_row['value']})"
+            
             except:
                 pass
             
-            
-            # find the row where insert_lookup_mix_2_result['index_name'] == index
             try:
+                # Mixed workload 2
                 insert_lookup_mix_2_result = insert_lookup_mix_2_results[insert_lookup_mix_2_results['index_name'] == index]
-                # compute average throughput across insert_lookup_mix_2_result['throughput1'], insert_lookup_mix_2_result['throughput2'], insert_lookup_mix_2_result['throughput3'], then select the one with the highest throughput
-                insertlookup_mix2_throughput[index][task] = insert_lookup_mix_2_result[['mixed_throughput_mops1', 'mixed_throughput_mops2', 'mixed_throughput_mops3']].mean(axis=1).max()
-                # get the index size
-                insertlookup_mix2_size[index][task] = insert_lookup_mix_2_result['index_size_bytes'].iloc[0]
+                if not insert_lookup_mix_2_result.empty:
+                    insert_lookup_mix_2_result['mean_throughput'] = insert_lookup_mix_2_result[['mixed_throughput_mops1', 'mixed_throughput_mops2', 'mixed_throughput_mops3']].mean(axis=1)
+                    max_row = insert_lookup_mix_2_result.loc[insert_lookup_mix_2_result['mean_throughput'].idxmax()]
+                    insertlookup_mix2_throughput[index][task] = max_row['mean_throughput']
+                    insertlookup_mix2_size[index][task] = max_row['index_size_bytes']
+                    mix2_labels[index] = f"{index}\n({max_row['search_method']}, {max_row['value']})"
+            
             except:
                 pass
     
@@ -98,7 +119,7 @@ def result_analysis():
     ax.set_title('Lookup-only Throughput')
     ax.set_ylabel('Throughput (Mops/s)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.set_xticklabels([lookup_labels.get(idx, idx) for idx in indexs], rotation=45, ha='right')
     ax.legend()
     
     # 2. Plot insert-lookup throughput (separated)
@@ -125,7 +146,7 @@ def result_analysis():
     ax.set_title('Insert-Lookup Throughput (50% insert ratio)')
     ax.set_ylabel('Throughput (Mops/s)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.set_xticklabels([insert_labels.get(idx, idx) for idx in indexs], rotation=45, ha='right')
     ax.legend()
     
     # 3. Plot mixed workload with 10% inserts
@@ -139,7 +160,7 @@ def result_analysis():
     ax.set_title('Mixed Workload (10% insert ratio)')
     ax.set_ylabel('Throughput (Mops/s)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.set_xticklabels([mix1_labels.get(idx, idx) for idx in indexs], rotation=45, ha='right')
     ax.legend()
     
     # 4. Plot mixed workload with 90% inserts
@@ -153,7 +174,7 @@ def result_analysis():
     ax.set_title('Mixed Workload (90% insert ratio)')
     ax.set_ylabel('Throughput (Mops/s)')
     ax.set_xticks([x + bar_width*1.5 for x in index])
-    ax.set_xticklabels(indexs, rotation=45, ha='right')
+    ax.set_xticklabels([mix2_labels.get(idx, idx) for idx in indexs], rotation=45, ha='right')
     ax.legend()
     
     fig.suptitle('Benchmark Results - Throughput', fontsize=16)
