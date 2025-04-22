@@ -14,6 +14,8 @@ rmi.tar.zst
 .vscode/
 benchmark_results_*
 fb*.csv
+results-set/
+results1/
 
 analysis_results/
 *.png

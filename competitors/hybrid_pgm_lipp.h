@@ -196,7 +196,7 @@ class HybridPGMLIPP : public Base<KeyType> {
   }
 
   void ProcessMigrationBatch() {
-    std::vector<std::vector<KeyValue<KeyType>>> parallel_batches;
+    std::vector<KeyValue<KeyType>> batch;
     size_t total_size = 0;
     
     {
@@ -207,68 +207,45 @@ class HybridPGMLIPP : public Base<KeyType> {
       }
 
       total_size = dpgm_.size();
-      size_t num_batches = (total_size + parallel_migration_batch_size_ - 1) / parallel_migration_batch_size_;
-      parallel_batches.resize(num_batches);
+      batch.reserve(std::min(total_size, parallel_migration_batch_size_));
       
-      // Extract data in parallel batches
-      const auto& pgm = dpgm_.GetInternalData();
-      auto it = pgm.lower_bound(std::numeric_limits<KeyType>::min());
-      
-      for (size_t i = 0; i < num_batches && it != pgm.end(); ++i) {
-        parallel_batches[i].reserve(std::min(parallel_migration_batch_size_, total_size - i * parallel_migration_batch_size_));
-        for (size_t j = 0; j < parallel_migration_batch_size_ && it != pgm.end(); ++j) {
-          parallel_batches[i].push_back(KeyValue<KeyType>{it->key(), it->value()});
-          ++it;
+      // Extract data in batches
+      for (size_t i = 0; i < total_size; ++i) {
+        KeyType key = dpgm_min_key_ + i;  // Assuming keys are sequential
+        size_t value = dpgm_.EqualityLookup(key, 0);
+        if (value != util::NOT_FOUND) {
+          batch.push_back(KeyValue<KeyType>{key, value});
         }
       }
     }
 
-    if (parallel_batches.empty()) {
+    if (batch.empty()) {
       migration_in_progress_.store(false);
       return;
     }
 
-    // Process batches in parallel
-    std::vector<std::future<void>> futures;
-    for (auto& batch : parallel_batches) {
-      if (batch.empty()) continue;
-      
-      futures.push_back(std::async(std::launch::async, [this, &batch]() {
-        // Sort the batch
-        std::sort(batch.begin(), batch.end(), 
-                  [](const KeyValue<KeyType>& a, const KeyValue<KeyType>& b) {
-                    return a.key < b.key;
-                  });
+    // Sort the batch
+    std::sort(batch.begin(), batch.end(), 
+              [](const KeyValue<KeyType>& a, const KeyValue<KeyType>& b) {
+                return a.key < b.key;
+              });
 
-        // Update LIPP key ranges and build
-        KeyType batch_min = std::numeric_limits<KeyType>::max();
-        KeyType batch_max = std::numeric_limits<KeyType>::min();
-        for (const auto& kv : batch) {
-          batch_min = std::min(batch_min, kv.key);
-          batch_max = std::max(batch_max, kv.key);
-        }
-
-        {
-          std::lock_guard<std::shared_mutex> lock(mutex_);
-          lipp_.Build(batch, 1);
-          lipp_min_key_ = std::min(lipp_min_key_, batch_min);
-          lipp_max_key_ = std::max(lipp_max_key_, batch_max);
-          
-          // Clear migrated data from DPGM
-          auto& pgm = dpgm_.GetInternalData();
-          for (const auto& kv : batch) {
-            auto it = pgm.find(kv.key);
-            if (it != pgm.end()) {
-              pgm.erase(it);
-            }
-          }
-        }
-      }));
+    // Update LIPP key ranges and build
+    KeyType batch_min = std::numeric_limits<KeyType>::max();
+    KeyType batch_max = std::numeric_limits<KeyType>::min();
+    for (const auto& kv : batch) {
+      batch_min = std::min(batch_min, kv.key);
+      batch_max = std::max(batch_max, kv.key);
     }
 
-    // Wait for all batches to complete
-    for (auto& future : futures) {
-      future.wait();
+    {
+      std::lock_guard<std::shared_mutex> lock(mutex_);
+      lipp_.Build(batch, 1);
+      lipp_min_key_ = std::min(lipp_min_key_, batch_min);
+      lipp_max_key_ = std::max(lipp_max_key_, batch_max);
+      
+      // Clear DPGM by rebuilding with empty data
+      dpgm_.Build({}, 1);
     }
 
     if (dpgm_.size() > 0) {
