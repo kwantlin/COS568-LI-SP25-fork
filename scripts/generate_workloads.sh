@@ -7,7 +7,7 @@
 mkdir -p build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j 16
+make -j 16 V=1 > build.log 2>&1
 
 function generate_uint64_100M() {
     echo "Generating operations for $1"

@@ -73,28 +73,31 @@ class DynamicPGM : public Competitor<KeyType, SearchClass> {
   // Get direct access to the internal data structure
   const auto& GetInternalData() const { return pgm_; }
 
-  // Check if an item is deleted
-  bool IsItemDeleted(const auto& it) const {
-    return it->deleted();
-  }
-
-  // Get all non-deleted items
-  std::vector<KeyValue<KeyType>> GetAllItems() const {
+  // Get all non-deleted items without blocking
+  std::vector<KeyValue<KeyType>> GetAllItemsNonBlocking() const {
     std::vector<KeyValue<KeyType>> result;
     const auto& pgm = GetInternalData();
     
-    // Get the first key
-    auto it = pgm.lower_bound(std::numeric_limits<KeyType>::min());
-    if (it == pgm.end()) return result;
+    // Pre-allocate space for efficiency - use a reasonable default size
+    result.reserve(1000000);  // 1M entries as default capacity
     
-    // Iterate through all keys
-    while (it != pgm.end()) {
+    // Get a snapshot of the current state
+    auto snapshot = pgm;
+    
+    // Get the first key
+    auto it = snapshot.lower_bound(std::numeric_limits<KeyType>::min());
+    if (it == snapshot.end()) return result;
+    
+    // Iterate through all keys in the snapshot
+    while (it != snapshot.end()) {
+      // Use EqualityLookup to check if item exists and get its value
       size_t value = EqualityLookup(it->key(), 0);
       if (value != util::NOT_FOUND) {
         result.emplace_back(it->key(), value);
       }
       ++it;
     }
+    
     return result;
   }
 

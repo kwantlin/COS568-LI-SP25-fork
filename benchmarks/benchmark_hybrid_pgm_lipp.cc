@@ -24,67 +24,48 @@ void benchmark_64_hybrid_pgm_lipp(tli::Benchmark<uint64_t>& benchmark, const std
   // Use similar configurations as Dynamic PGM but with hybrid-specific optimizations
   if (filename.find("books_100M") != std::string::npos) {
     if (filename.find("0.000000i") != std::string::npos) {
-      // Lookup-heavy workload
-      benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{5});
-      benchmark.template Run<HybridPGMLIPP<uint64_t, LinearSearch<record>, 16>>(std::vector<int>{5});
+      benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{10});
     } else if (filename.find("mix") == std::string::npos) {
       if (filename.find("0m") != std::string::npos) {
-        benchmark.template Run<HybridPGMLIPP<uint64_t, InterpolationSearch<record>, 16>>(std::vector<int>{5});
-        benchmark.template Run<HybridPGMLIPP<uint64_t, InterpolationSearch<record>, 16>>(std::vector<int>{10});
-      } else if (filename.find("1m") != std::string::npos) {
-        benchmark.template Run<HybridPGMLIPP<uint64_t, ExponentialSearch<record>, 16>>(std::vector<int>{5});
-        benchmark.template Run<HybridPGMLIPP<uint64_t, ExponentialSearch<record>, 16>>(std::vector<int>{10});
+        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{10});
       }
     } else {
-      // Mixed workloads
       if (filename.find("0.900000i") != std::string::npos) {
-        // 90% lookup, 10% insert
-        benchmark.template Run<HybridPGMLIPP<uint64_t, InterpolationSearch<record>, 16>>(std::vector<int>{5});
-        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{5});
+        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{10});
       } else if (filename.find("0.100000i") != std::string::npos) {
-        // 10% lookup, 90% insert
-        benchmark.template Run<HybridPGMLIPP<uint64_t, LinearSearch<record>, 16>>(std::vector<int>{10});
-        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{10});
+        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{5});
       }
     }
   }
   
   if (filename.find("fb_100M") != std::string::npos) {
     if (filename.find("0.000000i") != std::string::npos) {
-      benchmark.template Run<HybridPGMLIPP<uint64_t, LinearSearch<record>, 16>>(std::vector<int>{5});
-      benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{5});
+      benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{10});
     } else if (filename.find("mix") == std::string::npos) {
       if (filename.find("0m") != std::string::npos) {
-        benchmark.template Run<HybridPGMLIPP<uint64_t, LinearSearch<record>, 16>>(std::vector<int>{5});
-        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{5});
+        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{10});
       }
     } else {
       if (filename.find("0.900000i") != std::string::npos) {
-        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{5});
-        benchmark.template Run<HybridPGMLIPP<uint64_t, LinearSearch<record>, 16>>(std::vector<int>{5});
+        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{10});
       } else if (filename.find("0.100000i") != std::string::npos) {
-        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{10});
-        benchmark.template Run<HybridPGMLIPP<uint64_t, LinearSearch<record>, 16>>(std::vector<int>{10});
+        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{5});
       }
     }
   }
   
   if (filename.find("osmc_100M") != std::string::npos) {
     if (filename.find("0.000000i") != std::string::npos) {
-      benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{5});
-      benchmark.template Run<HybridPGMLIPP<uint64_t, LinearSearch<record>, 16>>(std::vector<int>{5});
+      benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{10});
     } else if (filename.find("mix") == std::string::npos) {
       if (filename.find("0m") != std::string::npos) {
-        benchmark.template Run<HybridPGMLIPP<uint64_t, LinearSearch<record>, 16>>(std::vector<int>{5});
-        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{5});
+        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{10});
       }
     } else {
       if (filename.find("0.900000i") != std::string::npos) {
-        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{5});
-        benchmark.template Run<HybridPGMLIPP<uint64_t, LinearSearch<record>, 16>>(std::vector<int>{5});
+        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{10});
       } else if (filename.find("0.100000i") != std::string::npos) {
-        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 16>>(std::vector<int>{10});
-        benchmark.template Run<HybridPGMLIPP<uint64_t, LinearSearch<record>, 16>>(std::vector<int>{10});
+        benchmark.template Run<HybridPGMLIPP<uint64_t, BranchingBinarySearch<record>, 64>>(std::vector<int>{5});
       }
     }
   }
